@@ -13,6 +13,9 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.os.Handler;
 
 import java.util.ArrayList;
@@ -29,7 +32,7 @@ import java.util.UUID;
 public class MainActivity extends ActionBarActivity {
 
     private BluetoothAdapter BTAdapter;
-    private ArrayList<BluetoothDevice>pairedDevices;
+    private ArrayList<BluetoothDevice> pairedDevices;
     ListView lv;
 
 
@@ -43,6 +46,9 @@ public class MainActivity extends ActionBarActivity {
     int counter;
     volatile boolean stopWorker;
     TextView myLabel;
+
+    ArrayList<BluetoothAdapter> mArrayAdapter;
+    private ArrayList<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
 
     public static int REQUEST_BLUETOOTH = 1;
 
@@ -83,10 +89,12 @@ public class MainActivity extends ActionBarActivity {
         });
         list();
 
+
+
         return;
     }
 
-    public void list(){
+    /*public void list(){
         Set<BluetoothDevice> lista = BTAdapter.getBondedDevices();
         pairedDevices = new ArrayList<BluetoothDevice>();
         ArrayList list = new ArrayList();
@@ -98,6 +106,49 @@ public class MainActivity extends ActionBarActivity {
 
         final ArrayAdapter adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1, list);
         lv.setAdapter(adapter);
+    }*/
+
+    public void list(){
+        Set<BluetoothDevice> pairedDevices = BTAdapter.getBondedDevices();
+        // If there are paired devices
+        if (pairedDevices.size() > 0) {
+            // Loop through paired devices
+            for (BluetoothDevice device : pairedDevices) {
+                // Add the name and address to an array adapter to show in a ListView
+                devices.add(device);
+            }
+        }
+
+        /*if(BluetoothDevice.ACTION_FOUND.equals(getIntent().getAction())){
+            BluetoothDevice device = getIntent().getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            devices.add(device);
+        }*/
+
+        discoverDevices();
+
+        final ArrayAdapter adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1, devices);
+        lv.setAdapter(adapter);
+
+    }
+
+    public void discoverDevices(){
+        // Create a BroadcastReceiver for ACTION_FOUND
+         final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                // When discovery finds a device
+                if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                    // Get the BluetoothDevice object from the Intent
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    // Add the name and address to an array adapter to show in a ListView
+                    //mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                    devices.add(device);
+                }
+            }
+        };
+        // Register the BroadcastReceiver
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
     }
 
     @Override
@@ -126,7 +177,11 @@ public class MainActivity extends ActionBarActivity {
     public void openBT()
     {
         try {
-            mmDevice = pairedDevices.get(lv.getSelectedItemPosition());
+            if(devices.size()==0) {
+                Toast.makeText(getApplicationContext(),"El vector de bluetooths esta vacio",Toast.LENGTH_LONG).show();
+                return;
+            }
+            mmDevice = devices.get(lv.getSelectedItemPosition());
 
             UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //Standard SerialPortService ID
             mmSocket = mmDevice.createRfcommSocketToServiceRecord(uuid);
@@ -137,19 +192,6 @@ public class MainActivity extends ActionBarActivity {
             beginListenForData();
 
             myLabel.setText("Bluetooth Opened");
-        }catch (IOException e){
-            Toast.makeText(getApplicationContext(),"Algo falla",Toast.LENGTH_LONG).show();
-        }
-    }
-
-    public void closeBT()
-    {
-        try{
-            stopWorker = true;
-            mmOutputStream.close();
-            mmInputStream.close();
-            mmSocket.close();
-            myLabel.setText("Bluetooth Closed");
         }catch (IOException e){
             Toast.makeText(getApplicationContext(),"Algo falla",Toast.LENGTH_LONG).show();
         }
@@ -211,4 +253,18 @@ public class MainActivity extends ActionBarActivity {
 
         workerThread.start();
     }
+
+    public void closeBT()
+    {
+        try{
+            stopWorker = true;
+            mmOutputStream.close();
+            mmInputStream.close();
+            mmSocket.close();
+            myLabel.setText("Bluetooth Closed");
+        }catch (IOException e){
+            Toast.makeText(getApplicationContext(),"Algo falla",Toast.LENGTH_LONG).show();
+        }
+    }
+
 }

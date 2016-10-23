@@ -269,7 +269,7 @@ public class MainActivity extends ActionBarActivity {
                                                 TBAlt.setText(data);
                                             }
                                             else if(temp.contains("No")){
-                                                Toast.makeText(getApplicationContext(),"Cargando datos de satélite",Toast.LENGTH_LONG).show();
+                                                Toast.makeText(getApplicationContext(),"Cargando datos de satélite, espere",Toast.LENGTH_LONG).show();
                                             }
                                            // TBLong.setText(data);
                                         }

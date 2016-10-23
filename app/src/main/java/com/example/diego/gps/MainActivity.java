@@ -21,6 +21,7 @@ import android.os.Handler;
 import java.util.ArrayList;
 import java.util.Set;
 import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class MainActivity extends ActionBarActivity {
     int readBufferPosition;
     int counter;
     volatile boolean stopWorker;
-    TextView myLabel;
+    TextView TBLat, TBDirLat, TBLong, TBDirLong, TBAlt;
 
     ArrayList<BluetoothAdapter> mArrayAdapter;
     private ArrayList<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
@@ -69,7 +70,12 @@ public class MainActivity extends ActionBarActivity {
         }
 
         lv = (ListView)findViewById(R.id.listview);
-        myLabel = (TextView)findViewById(R.id.TBDatos);
+        TBLat = (TextView)findViewById(R.id.TBLat);
+        TBDirLat = (TextView)findViewById(R.id.TBDirLat);
+        TBLong  = (TextView)findViewById(R.id.TBLong);
+        TBDirLong = (TextView)findViewById(R.id.TBDirLong);
+        TBAlt = (TextView)findViewById(R.id.TBAlt);
+
         Button openButton = (Button)findViewById(R.id.BOpen);
         Button closeButton = (Button)findViewById(R.id.BClose);
 
@@ -87,6 +93,13 @@ public class MainActivity extends ActionBarActivity {
                     closeBT();
             }
         });
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+                @Override
+                public void onItemClick(AdapterView<?> parent , View v, int position, long id) {
+                    mmDevice  = pairedDevices.get(position);
+                }
+        });
         list();
 
 
@@ -94,7 +107,7 @@ public class MainActivity extends ActionBarActivity {
         return;
     }
 
-    /*public void list(){
+    public void list(){
         Set<BluetoothDevice> lista = BTAdapter.getBondedDevices();
         pairedDevices = new ArrayList<BluetoothDevice>();
         ArrayList list = new ArrayList();
@@ -106,9 +119,9 @@ public class MainActivity extends ActionBarActivity {
 
         final ArrayAdapter adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1, list);
         lv.setAdapter(adapter);
-    }*/
+    }
 
-    public void list(){
+    /*public void list(){
         Set<BluetoothDevice> pairedDevices = BTAdapter.getBondedDevices();
         // If there are paired devices
         if (pairedDevices.size() > 0) {
@@ -124,12 +137,12 @@ public class MainActivity extends ActionBarActivity {
             devices.add(device);
         }*/
 
-        discoverDevices();
+     /*   discoverDevices();
 
         final ArrayAdapter adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1, devices);
         lv.setAdapter(adapter);
 
-    }
+    }*/
 
     public void discoverDevices(){
         // Create a BroadcastReceiver for ACTION_FOUND
@@ -177,11 +190,10 @@ public class MainActivity extends ActionBarActivity {
     public void openBT()
     {
         try {
-            if(devices.size()==0) {
-                Toast.makeText(getApplicationContext(),"El vector de bluetooths esta vacio",Toast.LENGTH_LONG).show();
+            if(pairedDevices.size()==0) {
+                Toast.makeText(getApplicationContext(), "El vector de bluetooths esta vacio", Toast.LENGTH_LONG).show();
                 return;
             }
-            mmDevice = devices.get(lv.getSelectedItemPosition());
 
             UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //Standard SerialPortService ID
             mmSocket = mmDevice.createRfcommSocketToServiceRecord(uuid);
@@ -191,7 +203,7 @@ public class MainActivity extends ActionBarActivity {
 
             beginListenForData();
 
-            myLabel.setText("Bluetooth Opened");
+            Toast.makeText(getApplicationContext(),"Conexión establecida",Toast.LENGTH_LONG).show();
         }catch (IOException e){
             Toast.makeText(getApplicationContext(),"Algo falla",Toast.LENGTH_LONG).show();
         }
@@ -200,7 +212,7 @@ public class MainActivity extends ActionBarActivity {
     public void beginListenForData()
     {
         final Handler handler = new Handler();
-        final byte delimiter = 10; //This is the ASCII code for a newline character
+        final byte delimiter = '\n'; //This is the ASCII code for a newline character
 
         stopWorker = false;
         readBufferPosition = 0;
@@ -232,7 +244,34 @@ public class MainActivity extends ActionBarActivity {
                                     {
                                         public void run()
                                         {
-                                            myLabel.setText(data);
+                                            String temp = data;
+                                            if(temp.contains("Latitud: ") && temp.contains("Grados")){
+                                                TBLat.setText(data);
+                                            }
+                                            else if(temp.contains("Latitud ") && temp.contains("Dir")){
+                                                if(temp.contains("N"))
+                                                    TBDirLat.setText("Latitud Dir.: Norte");
+                                                else
+                                                    TBDirLat.setText("Latitud Dir.: Sur");
+                                                //TBDirLat.setText(data);
+                                            }
+                                            else if(temp.contains("Longitud: ") && temp.contains("Grados")){
+                                                TBLong.setText(data);
+                                            }
+                                            else if(temp.contains("Longitud ") && temp.contains("Dir")){
+                                                if(temp.contains("W"))
+                                                    TBDirLong.setText("Longitud Dir.: Oeste");
+                                                else
+                                                    TBDirLong.setText("Longitud Dir.: Este");
+                                                //TBDirLong.setText(data);
+                                            }
+                                            else if(temp.contains("Altitud: ")){
+                                                TBAlt.setText(data);
+                                            }
+                                            else if(temp.contains("No")){
+                                                Toast.makeText(getApplicationContext(),"Cargando datos de satélite",Toast.LENGTH_LONG).show();
+                                            }
+                                           // TBLong.setText(data);
                                         }
                                     });
                                 }
@@ -261,7 +300,8 @@ public class MainActivity extends ActionBarActivity {
             mmOutputStream.close();
             mmInputStream.close();
             mmSocket.close();
-            myLabel.setText("Bluetooth Closed");
+            Toast.makeText(getApplicationContext(),"Conexión cerrada",Toast.LENGTH_LONG).show();
+            //myLabel.setText("Bluetooth Closed");
         }catch (IOException e){
             Toast.makeText(getApplicationContext(),"Algo falla",Toast.LENGTH_LONG).show();
         }

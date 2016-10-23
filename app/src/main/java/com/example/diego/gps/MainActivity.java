@@ -190,8 +190,8 @@ public class MainActivity extends ActionBarActivity {
     public void openBT()
     {
         try {
-            if(pairedDevices.size()==0) {
-                Toast.makeText(getApplicationContext(), "El vector de bluetooths esta vacio", Toast.LENGTH_LONG).show();
+            if(pairedDevices.size()==0 || mmDevice==null) {
+                Toast.makeText(getApplicationContext(), "Debe seleccionar un dispositivo", Toast.LENGTH_LONG).show();
                 return;
             }
 
